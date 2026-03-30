@@ -104,7 +104,7 @@ if not df.empty:
             st.write(f"**{row['Nome'][:60]}...**")
             st.markdown(f"~~R$ {float(row['PrecoDe']):.2f}~~")
             st.markdown(f"### **R$ {float(row['PrecoPor']):.2f}** 🔥")
-            st.link_button("🛒 VER NA SHOPEE", row['Link'])
+            st.link_button("🛒 VER NA LOJA", row['Link'])
             st.divider()
 else:
     st.info("Aguardando o robô postar o primeiro produto no novo formato...")
