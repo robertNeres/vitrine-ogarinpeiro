@@ -8,18 +8,11 @@ st.set_page_config(page_title="Vitrine O Garimpeiro", layout="wide", page_icon="
 # --- ESTILO CSS PARA BOTÕES E LOGO ---
 st.markdown("""
     <style>
-    .main { background-color: #f8f9fa; }
-    .product-card {
-        border: 1px solid #e0e0e0; padding: 20px; border-radius: 15px;
-        background-color: white; margin-bottom: 25px; text-align: center;
-        box-shadow: 0px 4px 10px rgba(0,0,0,0.05);
-    }
-    .preco-de { color: #888; text-decoration: line-through; font-size: 0.9em; }
-    .preco-por { color: #ff4b4b; font-size: 1.4em; font-weight: bold; margin-top: -10px; }
-    .social-btn {
-        display: block; width: 100%; padding: 12px; color: white !important; 
-        border-radius: 8px; text-decoration: none; margin-bottom: 10px;
-        font-weight: bold; text-align: center;
+    .main { background-color: #f0f2f6; }
+    .stButton>button { width: 100%; border-radius: 8px; font-weight: bold; }
+    .social-btn { 
+        display: inline-block; padding: 10px 20px; color: white; 
+        border-radius: 5px; text-decoration: none; margin: 5px; font-weight: bold;
     }
     .whatsapp { background-color: #25D366; }
     .telegram { background-color: #0088cc; }
@@ -29,13 +22,7 @@ st.markdown("""
 
 # --- CABEÇALHO (LOGO E REDES SOCIAIS) ---
 col_logo, col_links = st.columns([1, 2])
-                                                        
 
-                   
-                                
-                                     
-     
-                                 
 
 with col_logo:
     diretorio_atual = os.path.dirname(os.path.abspath(__file__))
@@ -51,7 +38,7 @@ with col_logo:
             break
 
     if logo_encontrada:
-        st.image(logo_encontrada, width=200)
+        st.image(logo_encontrada, width=180)
     else:
         st.markdown("<h1 style='text-align: center; margin:0;'>💎</h1>", unsafe_allow_html=True)
         st.error(f"⚠️ Nenhuma logo achada em: {diretorio_atual}")
@@ -79,7 +66,6 @@ st.title("💎 Vitrine")
 def carregar_dados():
     diretorio_atual = os.path.dirname(os.path.abspath(__file__))
     arquivo = os.path.join(diretorio_atual, "historico_postagens_teste.txt")
-                                                             
     
     if not os.path.exists(arquivo):
         return pd.DataFrame()
@@ -99,7 +85,6 @@ def carregar_dados():
                     "PrecoPor": p[7].strip()
                 })
     return pd.DataFrame(lista_produtos)
-
 df = carregar_dados()
 
 if not df.empty:
@@ -114,13 +99,12 @@ if not df.empty:
     cols = st.columns(3)
     for i, (_, row) in enumerate(df.iterrows()):
         with cols[i % 3]:
-                                                                             
             st.image(row['Foto'], use_container_width=True)
             st.subheader(f"#{row['ID']}")
             st.write(f"**{row['Nome'][:60]}...**")
             st.markdown(f"~~R$ {float(row['PrecoDe']):.2f}~~")
             st.markdown(f"### **R$ {float(row['PrecoPor']):.2f}** 🔥")
-            st.link_button("🛒 VER NA LOJA", row['Link'])
+            st.link_button("🛒 VER NA SHOPEE", row['Link'])
             st.divider()
 else:
     st.info("Aguardando o robô postar o primeiro produto no novo formato...")
