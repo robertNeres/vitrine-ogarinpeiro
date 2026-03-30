@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import os
 import base64
+import math # Importante para calcular as páginas
 
 # --- 1. CONFIGURAÇÃO DA PÁGINA ---
 st.set_page_config(page_title="Vitrine O Garimpeiro", layout="wide", page_icon="💎")
@@ -10,9 +11,14 @@ st.set_page_config(page_title="Vitrine O Garimpeiro", layout="wide", page_icon="
 COR_PRINCIPAL = "#FF5733" 
 COR_FUNDO = "#F8F9FA"
 
+# --- CONFIGURAÇÃO DE ITENS POR PÁGINA ---
+ITENS_POR_PAGINA = 12 
+
 # --- 2. CONTROLE DE ESTADO ---
 if 'ordem_preco' not in st.session_state:
     st.session_state.ordem_preco = "asc"
+if 'pagina_atual' not in st.session_state:
+    st.session_state.pagina_atual = 1
 
 # --- 3. CAMINHOS E LOGO ---
 DIRETORIO_ATUAL = os.path.dirname(os.path.abspath(__file__))
@@ -70,7 +76,7 @@ st.markdown(f"""
     }}
 
     .img-produto {{
-        width: 65% !important; /* Força os 30% a menos */
+        width: 65% !important;
         border-radius: 10px;
     }}
 
@@ -104,14 +110,15 @@ st.markdown(f"""
     """, unsafe_allow_html=True)
 
 # --- 6. BUSCA E FILTROS ---
-busca = st.text_input("🔍 Procurar #ID ou Nome do produto")
+def reset_pag(): st.session_state.pagina_atual = 1
+busca = st.text_input("🔍 Procurar #ID ou Nome do produto", on_change=reset_pag)
 
 st.write("### 📊 Organizar por:")
 c1, c2, c3 = st.columns(3)
 with c1: btn_recentes = st.button("✨ Recentes", use_container_width=True)
 with c2: btn_desconto = st.button("📉 Desconto", use_container_width=True)
 with c3:
-    label_preco = "💰 Preço" if st.session_state.ordem_preco == "asc" else "💰 Preço"
+    label_preco = "💰 Preço"
     btn_preco = st.button(label_preco, use_container_width=True)
 
 # --- 7. CARREGAMENTO ---
@@ -139,19 +146,34 @@ if not df.empty:
     if btn_preco:
         st.session_state.ordem_preco = "desc" if st.session_state.ordem_preco == "asc" else "asc"
         df = df.sort_values(by="PrecoPor", ascending=(st.session_state.ordem_preco == "asc"))
+        reset_pag()
     elif btn_desconto:
         df = df.sort_values(by="Desconto", ascending=False)
+        reset_pag()
     else:
         df = df.iloc[::-1]
 
     if busca:
         df = df[df['Nome'].str.contains(busca, case=False) | df['ID'].str.contains(busca)]
 
-    # --- 8. GRADE DE PRODUTOS CORRIGIDA ---
+    # --- LÓGICA DE PAGINAÇÃO ---
+    total_itens = len(df)
+    total_paginas = math.ceil(total_itens / ITENS_POR_PAGINA)
+    
+    # Garante que a página não fique fora do limite após um filtro
+    if st.session_state.pagina_atual > total_paginas: st.session_state.pagina_atual = total_paginas
+    if st.session_state.pagina_atual < 1: st.session_state.pagina_atual = 1
+
+    inicio = (st.session_state.pagina_atual - 1) * ITENS_POR_PAGINA
+    fim = inicio + ITENS_POR_PAGINA
+    df_pagina = df.iloc[inicio:fim]
+
+    st.write(f"📌 Página {st.session_state.pagina_atual} de {total_paginas} ({total_itens} produtos)")
+    
+    # --- 8. GRADE DE PRODUTOS ---
     cols = st.columns(3)
-    for i, (_, row) in enumerate(df.iterrows()):
+    for i, (_, row) in enumerate(df_pagina.iterrows()):
         with cols[i % 3]:
-            # Criando o HTML do card como uma string única para evitar erros
             card_html = f"""
                 <div class="product-card">
                     <img src="{row['Foto']}" class="img-produto">
@@ -166,5 +188,19 @@ if not df.empty:
             st.markdown(card_html, unsafe_allow_html=True)
             st.link_button("🛒 VER NA LOJA", row['Link'], use_container_width=True, type="primary")
             st.write(" ")
+
+    # --- 9. NAVEGAÇÃO ENTRE PÁGINAS ---
+    st.divider()
+    c_voltar, c_meio, c_avancar = st.columns([1, 2, 1])
+    with c_voltar:
+        if st.button("⬅️ Anterior") and st.session_state.pagina_atual > 1:
+            st.session_state.pagina_atual -= 1
+            st.rerun()
+    with c_meio:
+        st.markdown(f"<p style='text-align:center;'>Página {st.session_state.pagina_atual} de {total_paginas}</p>", unsafe_allow_html=True)
+    with c_avancar:
+        if st.button("Próxima ➡️") and st.session_state.pagina_atual < total_paginas:
+            st.session_state.pagina_atual += 1
+            st.rerun()
 else:
     st.info("Aguardando garimpo...")
