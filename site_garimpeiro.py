@@ -8,7 +8,7 @@ import math # Importante para calcular as páginas
 st.set_page_config(page_title="Vitrine O Garimpeiro", layout="wide", page_icon="💎")
 
 # --- 🎨 CORES AJUSTADAS (CORAL LEVE) ---
-COR_PRINCIPAL = "#FF5733" 
+COR_PRINCIPAL = "#2E7D32" 
 COR_FUNDO = "#F8F9FA"
 
 # --- CONFIGURAÇÃO DE ITENS POR PÁGINA ---
@@ -44,6 +44,7 @@ st.markdown(f"""
         color: white;
         border-radius: 0 0 25px 25px;
         margin: -65px -20px 25px -20px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1); /* [NOVO] Adicionei uma sombra leve no header */
     }}
 
     .logo-circular {{
@@ -82,7 +83,8 @@ st.markdown(f"""
 
     .discount-tag {{
         background-color: #FFD21E;
-        color: {COR_PRINCIPAL};
+        /* [AJUSTE] Cor do texto do desconto para combinar com o Kiwi */
+        color: #333; 
         font-weight: bold;
         padding: 2px 8px;
         border-radius: 5px;
@@ -109,8 +111,11 @@ st.markdown(f"""
     </div>
     """, unsafe_allow_html=True)
 
-# --- 6. BUSCA E FILTROS ---
-def reset_pag(): st.session_state.pagina_atual = 1
+# --- 6. [NOVO] FUNÇÃO DE RESET DE PÁGINA ---
+# Criada para que o site volte à página 1 sempre que o usuário mudar o filtro ou busca
+def reset_pag(): 
+    st.session_state.pagina_atual = 1
+
 busca = st.text_input("🔍 Procurar #ID ou Nome do produto", on_change=reset_pag)
 
 st.write("### 📊 Organizar por:")
