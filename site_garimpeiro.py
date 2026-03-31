@@ -7,22 +7,23 @@ import streamlit.components.v1 as components
 
 # --- 0. [NOVO] CONFIGURAÇÃO DO GOOGLE ANALYTICS ---
 # Função que injeta a tag que o Google te passou
+# --- [AJUSTE DE SÓCIO] NOVA TENTATIVA DE INJEÇÃO ---
 def configurar_google_analytics(id_ga):
-    # O código abaixo é exatamente o que o Google te forneceu
-    # Usamos f-string para colocar o seu ID (G-3RBXX5TFM3) lá dentro
-    codigo_js = f"""
+    # Usamos o st.markdown para "escrever" o script direto no corpo da página
+    # O HTML abaixo é o padrão que o Google te deu, mas injetado via Markdown
+    codigo_ga = f"""
         <script async src="https://www.googletagmanager.com/gtag/js?id={id_ga}"></script>
         <script>
-          window.dataLayer = window.dataLayer || [];
-          function gtag(){{dataLayer.push(arguments);}}
-          gtag('js', new Date());
-          gtag('config', '{id_ga}');
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){{dataLayer.push(arguments);}}
+            gtag('js', new Date());
+            gtag('config', '{id_ga}');
         </script>
     """
-    # Injetamos o código de forma invisível (height=0) no início do carregamento
-    components.html(codigo_js, height=0)
+    # [ESTUDO] O unsafe_allow_html=True é o que permite o navegador ler o <script>
+    st.markdown(codigo_ga, unsafe_allow_html=True)
 
-# Ativamos o rastreio com o seu ID oficial
+# Ative com o seu ID
 configurar_google_analytics("G-3RBXX5TFM3")
 
 # --- 1. CONFIGURAÇÃO DA PÁGINA ---
