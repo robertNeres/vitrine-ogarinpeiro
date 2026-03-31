@@ -6,25 +6,23 @@ import math
 import streamlit.components.v1 as components
 
 # --- 0. [NOVO] CONFIGURAÇÃO DO GOOGLE ANALYTICS ---
-# [ESTUDO] NOVA ESTRATÉGIA: Injeção via Componente de HTML
-from streamlit.components.v1 import html
-
+# Função que injeta a tag que o Google te passou
 def configurar_google_analytics(id_ga):
-    # Definimos o código exatamente como o Google quer
+    # O código abaixo é exatamente o que o Google te forneceu
+    # Usamos f-string para colocar o seu ID (G-3RBXX5TFM3) lá dentro
     codigo_js = f"""
         <script async src="https://www.googletagmanager.com/gtag/js?id={id_ga}"></script>
         <script>
-            window.dataLayer = window.dataLayer || [];
-            function gtag(){{dataLayer.push(arguments);}}
-            gtag('js', new Date());
-            gtag('config', '{id_ga}');
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){{dataLayer.push(arguments);}}
+          gtag('js', new Date());
+          gtag('config', '{id_ga}');
         </script>
     """
-    # [IMPORTANTE] Inserimos o componente. 
-    # O segredo: ele precisa estar no código, mas não precisa aparecer.
-    html(codigo_js, height=0)
+    # Injetamos o código de forma invisível (height=0) no início do carregamento
+    components.html(codigo_js, height=0)
 
-# Chame a função logo após o st.set_page_config
+# Ativamos o rastreio com o seu ID oficial
 configurar_google_analytics("G-3RBXX5TFM3")
 
 # --- 1. CONFIGURAÇÃO DA PÁGINA ---
