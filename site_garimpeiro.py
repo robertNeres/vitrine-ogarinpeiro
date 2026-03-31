@@ -2,7 +2,28 @@ import streamlit as st
 import pandas as pd
 import os
 import base64
-import math # Importante para calcular as páginas
+import math 
+import streamlit.components.v1 as components
+
+# --- 0. [NOVO] CONFIGURAÇÃO DO GOOGLE ANALYTICS ---
+# Função que injeta a tag que o Google te passou
+def configurar_google_analytics(id_ga):
+    # O código abaixo é exatamente o que o Google te forneceu
+    # Usamos f-string para colocar o seu ID (G-3RBXX5TFM3) lá dentro
+    codigo_js = f"""
+        <script async src="https://www.googletagmanager.com/gtag/js?id={id_ga}"></script>
+        <script>
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){{dataLayer.push(arguments);}}
+          gtag('js', new Date());
+          gtag('config', '{id_ga}');
+        </script>
+    """
+    # Injetamos o código de forma invisível (height=0) no início do carregamento
+    components.html(codigo_js, height=0)
+
+# Ativamos o rastreio com o seu ID oficial
+configurar_google_analytics("G-3RBXX5TFM3")
 
 # --- 1. CONFIGURAÇÃO DA PÁGINA ---
 st.set_page_config(page_title="Vitrine O Garimpeiro", layout="wide", page_icon="💎")
