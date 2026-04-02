@@ -33,7 +33,7 @@ COR_PRINCIPAL = "#2E7D32"
 COR_FUNDO = "#F8F9FA"
 
 # --- CONFIGURAÇÃO DE ITENS POR PÁGINA ---
-ITENS_POR_PAGINA = 12 
+ITENS_POR_PAGINA = 15 
 
 # --- 2. CONTROLE DE ESTADO ---
 if 'ordem_preco' not in st.session_state:
