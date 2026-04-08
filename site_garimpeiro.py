@@ -22,7 +22,24 @@ def configurar_google_analytics(id_ga):
     # Injetamos o código de forma invisível (height=0) no início do carregamento
     components.html(codigo_js, height=0)
 
+
+# [NOVO] FUNÇÃO PARA FORÇAR O SCROLL PARA O TOPO
+												   
+def scroll_ao_topo():
+    # Este script procura a área principal de conteúdo e joga ela para o topo
+    js = """
+        <script>
+            const topElement = window.parent.document.getElementById("topo");
+            if (topElement) {
+                topElement.scrollIntoView({behavior: "auto"});
+            }
+        </script>
+    """
+    components.html(js, height=0)
+
+
 # Ativamos o rastreio com o seu ID oficial
+
 configurar_google_analytics("G-3RBXX5TFM3")
 
 # --- 1. CONFIGURAÇÃO DA PÁGINA ---
@@ -35,16 +52,23 @@ COR_FUNDO = "#F8F9FA"
 # --- CONFIGURAÇÃO DE ITENS POR PÁGINA ---
 ITENS_POR_PAGINA = 15 
 
-# --- 2. CONTROLE DE ESTADO ---
-if 'ordem_preco' not in st.session_state:
-    st.session_state.ordem_preco = "asc"
-if 'pagina_atual' not in st.session_state:
-    st.session_state.pagina_atual = 1
-# [NOVO] Memória para manter o filtro ativo ao mudar de página
-if 'filtro_ativo' not in st.session_state:
-    st.session_state.filtro_ativo = "recentes"
-    
+# --- 2. CONTROLE DE ESTADO (MEMÓRIA) ---
+										 
+										
+if 'pagina_atual' not in st.session_state: st.session_state.pagina_atual = 1
+									 
+																
+										  
+if 'filtro_ativo' not in st.session_state: st.session_state.filtro_ativo = "recentes"
+
+# Estados para alternar ordem (ascendente/descendente)
+if 'ordem_preco' not in st.session_state: st.session_state.ordem_preco = "asc"
+if 'ordem_recentes' not in st.session_state: st.session_state.ordem_recentes = "novos"
+if 'ordem_desconto' not in st.session_state: st.session_state.ordem_desconto = "maior"
+if "scroll_top" not in st.session_state: st.session_state.scroll_top = False
+
 # --- 3. CAMINHOS E LOGO ---
+
 DIRETORIO_ATUAL = os.path.dirname(os.path.abspath(__file__))
 CAMINHO_TXT = os.path.join(DIRETORIO_ATUAL, "historico_postagens_teste.txt")
 
@@ -121,7 +145,16 @@ st.markdown(f"""
     </style>
     """, unsafe_allow_html=True)
 
-# --- 5. CABEÇALHO ---
+# --- 5. CABEÇALHO --- # --- TOPO ---
+st.markdown('<div id="topo"></div>', unsafe_allow_html=True)
+								
+
+# 🔥 EXECUTA SCROLL APÓS RERUN
+if st.session_state.scroll_top:
+    scroll_ao_topo()
+    st.session_state.scroll_top = False
+
+# --- HEADER ---               
 logo_html = f'<img src="data:image/png;base64,{logo_b64}" class="logo-circular">' if logo_b64 else '<h1>💎</h1>'
 st.markdown(f"""
     <div class="header-box">
@@ -135,31 +168,41 @@ st.markdown(f"""
     </div>
     """, unsafe_allow_html=True)
 
-# --- 6. [NOVO] FUNÇÃO DE RESET DE PÁGINA ---
-# Criada para que o site volte à página 1 sempre que o usuário mudar o filtro ou busca
+
 def reset_pag(): 
     st.session_state.pagina_atual = 1
+    st.session_state.scroll_top = True
+    
 
 busca = st.text_input("🔍 Procurar #ID ou Nome do produto", on_change=reset_pag)
 
+# --- 6. BOTÕES DE ORGANIZAÇÃO DINÂMICOS ---                                                
 st.write("### 📊 Organizar por:")
 c1, c2, c3 = st.columns(3)
 
 # Lógica de clique nos botões para salvar o estado do filtro
 with c1: 
-    if st.button("✨ Recentes", use_container_width=True):
+    label_rec = "✨ Recentes " if st.session_state.ordem_recentes == "novos" else "✨ Recentes "
+    if st.button(label_rec, use_container_width=True):
+        if st.session_state.filtro_ativo == "recentes":
+            st.session_state.ordem_recentes = "antigos" if st.session_state.ordem_recentes == "novos" else "novos"
         st.session_state.filtro_ativo = "recentes"
         reset_pag()
-with c2: 
-    if st.button("📉 Desconto", use_container_width=True):
+with c2:
+    label_desc = "📉 Desconto " if st.session_state.ordem_desconto == "maior" else "📉 Desconto "
+    if st.button(label_desc, use_container_width=True):
+        if st.session_state.filtro_ativo == "desconto":
+            st.session_state.ordem_desconto = "menor" if st.session_state.ordem_desconto == "maior" else "maior"
         st.session_state.filtro_ativo = "desconto"
         reset_pag()
 with c3:
     # Mostra se a próxima ordenação de preço será crescente ou decrescente no botão
-    label_dinamico = "💰 Preço " if st.session_state.ordem_preco == "asc" else "💰 Preço "
-    if st.button(label_dinamico, use_container_width=True):
+    label_pre = "💰 Preço " if st.session_state.ordem_preco == "asc" else "💰 Preço "
+    if st.button(label_pre, use_container_width=True):
+        if st.session_state.filtro_ativo == "preco":
+            st.session_state.ordem_preco = "desc" if st.session_state.ordem_preco == "asc" else "asc"
         st.session_state.filtro_ativo = "preco"
-        st.session_state.ordem_preco = "desc" if st.session_state.ordem_preco == "asc" else "asc"
+																								 
         reset_pag()
         
 # --- 7. CARREGAMENTO ---
@@ -184,34 +227,34 @@ def carregar():
 df = carregar()
 
 if not df.empty:
-    # [APLICAÇÃO DO FILTRO MEMORIZADO] 
+    # APLICAÇÃO DA ORDENAÇÃO BASEADA NO ESTADO
     # Agora a ordenação acontece sempre, baseada no que está salvo no session_state
     if st.session_state.filtro_ativo == "preco":
         df = df.sort_values(by="PrecoPor", ascending=(st.session_state.ordem_preco == "asc"))
     elif st.session_state.filtro_ativo == "desconto":
 					  
-        df = df.sort_values(by="Desconto", ascending=False)
+        df = df.sort_values(by="Desconto", ascending=(st.session_state.ordem_desconto == "menor"))
 				   
     else: # Recentes
-        df = df.iloc[::-1]
+       if st.session_state.ordem_recentes == "novos":
+           df = df.iloc[::-1]
 
     # Busca (Filtra o DataFrame já ordenado)                                            
     if busca:
-        df = df[df['Nome'].str.contains(busca, case=False) | df['ID'].str.contains(busca)]
+        df = df[df['Nome'].fillna('').str.contains(busca, case=False) | df['ID'].fillna('').str.contains(busca)]
 
     # --- LÓGICA DE PAGINAÇÃO ---
     total_itens = len(df)
-    total_paginas = math.ceil(total_itens / ITENS_POR_PAGINA)
+    total_paginas = max(1, math.ceil(total_itens / ITENS_POR_PAGINA))
     
     # Garante que a página não fique fora do limite após um filtro
     if st.session_state.pagina_atual > total_paginas: st.session_state.pagina_atual = total_paginas
     if st.session_state.pagina_atual < 1: st.session_state.pagina_atual = 1
 
     inicio = (st.session_state.pagina_atual - 1) * ITENS_POR_PAGINA
-    fim = inicio + ITENS_POR_PAGINA
-    df_pagina = df.iloc[inicio:fim]
+    df_pagina = df.iloc[inicio:inicio + ITENS_POR_PAGINA]
 
-    st.write(f"📌 Página {st.session_state.pagina_atual} de {total_paginas} ({total_itens} produtos)")
+    st.write(f"📌 Filtro: **{st.session_state.filtro_ativo.upper()}** | Página {st.session_state.pagina_atual} de {total_paginas}")
     
     # --- 8. GRADE DE PRODUTOS ---
     cols = st.columns(3)
@@ -220,8 +263,7 @@ if not df.empty:
             card_html = f"""
                 <div class="product-card">
                     <img src="{row['Foto']}" class="img-produto">
-                    <br>
-                    <div class="discount-tag">-{row['Desconto']}% OFF</div>
+                    <br><div class="discount-tag">-{row['Desconto']}% OFF</div>
                     <div style="font-size:12px; color:#888;">#ID {row['ID']}</div>
                     <div style="font-size:15px; font-weight:bold; color:#333; height:45px; overflow:hidden; margin:5px 0;">{row['Nome'][:55]}...</div>
                     <div style="text-decoration:line-through; color:#aaa; font-size:13px;">R$ {row['PrecoDe']:.2f}</div>
@@ -232,33 +274,37 @@ if not df.empty:
             st.link_button("🛒 VER NA LOJA", row['Link'], use_container_width=True, type="primary")
             st.write(" ")
 
-    # --- 9. NAVEGAÇÃO ENTRE PÁGINAS ---
-    # --- 9. NAVEGAÇÃO ENTRE PÁGINAS (ATUALIZADA) ---
+
+    # --- 9. NAVEGAÇÃO ENTRE PÁGINAS COMPLETA ---
     st.divider()
-    # Adicionando 5 colunas para caber os novos botões
+				
     c_prim, c_ant, c_pag, c_prox, c_ult = st.columns([1, 1, 2, 1, 1])
     
     with c_prim:
         if st.button("⏪ Primeira", use_container_width=True):
             st.session_state.pagina_atual = 1
+            st.session_state.scroll_top = True
             st.rerun()
-            
     with c_ant:
         if st.button("⬅️ Anterior", use_container_width=True) and st.session_state.pagina_atual > 1:
             st.session_state.pagina_atual -= 1
+            st.session_state.scroll_top = True
             st.rerun()
-            
+
     with c_pag:
         st.markdown(f"<p style='text-align:center; padding-top:10px;'>Página {st.session_state.pagina_atual} de {total_paginas}</p>", unsafe_allow_html=True)
-        
+
     with c_prox:
         if st.button("Próxima ➡️", use_container_width=True) and st.session_state.pagina_atual < total_paginas:
+															 
             st.session_state.pagina_atual += 1
+            st.session_state.scroll_top = True
             st.rerun()
-            
     with c_ult:
         if st.button("Última ⏩", use_container_width=True):
             st.session_state.pagina_atual = total_paginas
+            st.session_state.scroll_top = True
             st.rerun()
+
 else:
     st.info("Aguardando garimpo...")
