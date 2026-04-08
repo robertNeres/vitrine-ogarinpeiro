@@ -40,7 +40,10 @@ if 'ordem_preco' not in st.session_state:
     st.session_state.ordem_preco = "asc"
 if 'pagina_atual' not in st.session_state:
     st.session_state.pagina_atual = 1
-
+# [NOVO] Memória para manter o filtro ativo ao mudar de página
+if 'filtro_ativo' not in st.session_state:
+    st.session_state.filtro_ativo = "recentes"
+    
 # --- 3. CAMINHOS E LOGO ---
 DIRETORIO_ATUAL = os.path.dirname(os.path.abspath(__file__))
 CAMINHO_TXT = os.path.join(DIRETORIO_ATUAL, "historico_postagens_teste.txt")
@@ -141,12 +144,24 @@ busca = st.text_input("🔍 Procurar #ID ou Nome do produto", on_change=reset_pa
 
 st.write("### 📊 Organizar por:")
 c1, c2, c3 = st.columns(3)
-with c1: btn_recentes = st.button("✨ Recentes", use_container_width=True)
-with c2: btn_desconto = st.button("📉 Desconto", use_container_width=True)
-with c3:
-    label_preco = "💰 Preço"
-    btn_preco = st.button(label_preco, use_container_width=True)
 
+# Lógica de clique nos botões para salvar o estado do filtro
+with c1: 
+    if st.button("✨ Recentes", use_container_width=True):
+        st.session_state.filtro_ativo = "recentes"
+        reset_pag()
+with c2: 
+    if st.button("📉 Desconto", use_container_width=True):
+        st.session_state.filtro_ativo = "desconto"
+        reset_pag()
+with c3:
+    # Mostra se a próxima ordenação de preço será crescente ou decrescente no botão
+    label_dinamico = "💰 Preço " if st.session_state.ordem_preco == "asc" else "💰 Preço "
+    if st.button(label_dinamico, use_container_width=True):
+        st.session_state.filtro_ativo = "preco"
+        st.session_state.ordem_preco = "desc" if st.session_state.ordem_preco == "asc" else "asc"
+        reset_pag()
+        
 # --- 7. CARREGAMENTO ---
 def carregar():
     if not os.path.exists(CAMINHO_TXT): return pd.DataFrame()
@@ -169,16 +184,18 @@ def carregar():
 df = carregar()
 
 if not df.empty:
-    if btn_preco:
-        st.session_state.ordem_preco = "desc" if st.session_state.ordem_preco == "asc" else "asc"
+    # [APLICAÇÃO DO FILTRO MEMORIZADO] 
+    # Agora a ordenação acontece sempre, baseada no que está salvo no session_state
+    if st.session_state.filtro_ativo == "preco":
         df = df.sort_values(by="PrecoPor", ascending=(st.session_state.ordem_preco == "asc"))
-        reset_pag()
-    elif btn_desconto:
+    elif st.session_state.filtro_ativo == "desconto":
+					  
         df = df.sort_values(by="Desconto", ascending=False)
-        reset_pag()
-    else:
+				   
+    else: # Recentes
         df = df.iloc[::-1]
 
+    # Busca (Filtra o DataFrame já ordenado)                                            
     if busca:
         df = df[df['Nome'].str.contains(busca, case=False) | df['ID'].str.contains(busca)]
 
@@ -216,17 +233,32 @@ if not df.empty:
             st.write(" ")
 
     # --- 9. NAVEGAÇÃO ENTRE PÁGINAS ---
+    # --- 9. NAVEGAÇÃO ENTRE PÁGINAS (ATUALIZADA) ---
     st.divider()
-    c_voltar, c_meio, c_avancar = st.columns([1, 2, 1])
-    with c_voltar:
-        if st.button("⬅️ Anterior") and st.session_state.pagina_atual > 1:
+    # Adicionando 5 colunas para caber os novos botões
+    c_prim, c_ant, c_pag, c_prox, c_ult = st.columns([1, 1, 2, 1, 1])
+    
+    with c_prim:
+        if st.button("⏪ Primeira", use_container_width=True):
+            st.session_state.pagina_atual = 1
+            st.rerun()
+            
+    with c_ant:
+        if st.button("⬅️ Anterior", use_container_width=True) and st.session_state.pagina_atual > 1:
             st.session_state.pagina_atual -= 1
             st.rerun()
-    with c_meio:
-        st.markdown(f"<p style='text-align:center;'>Página {st.session_state.pagina_atual} de {total_paginas}</p>", unsafe_allow_html=True)
-    with c_avancar:
-        if st.button("Próxima ➡️") and st.session_state.pagina_atual < total_paginas:
+            
+    with c_pag:
+        st.markdown(f"<p style='text-align:center; padding-top:10px;'>Página {st.session_state.pagina_atual} de {total_paginas}</p>", unsafe_allow_html=True)
+        
+    with c_prox:
+        if st.button("Próxima ➡️", use_container_width=True) and st.session_state.pagina_atual < total_paginas:
             st.session_state.pagina_atual += 1
+            st.rerun()
+            
+    with c_ult:
+        if st.button("Última ⏩", use_container_width=True):
+            st.session_state.pagina_atual = total_paginas
             st.rerun()
 else:
     st.info("Aguardando garimpo...")
